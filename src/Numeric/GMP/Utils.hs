@@ -1,7 +1,18 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
--- | GMP utilities.
+-- | GMP utilities.  A simple example from the test suite:
+--
+-- > foreign import ccall safe "__gmpz_mul"
+-- >   mpz_mul :: Ptr MPZ -> Ptr MPZ -> Ptr MPZ -> IO ()
+-- >
+-- > prop_IntegerMultiply a b = ioProperty $ do
+-- >   (c, _) <-
+-- >     withOutInteger $ \cz ->
+-- >       withInteger a $ \az ->
+-- >         withInteger b $ \bz ->
+-- >           mpz_mul cz az bz
+-- >   return (a * b == c)
 module Numeric.GMP.Utils
   ( -- * Integer marshalling
     withInteger'
@@ -93,7 +104,9 @@ withByteArray ba# f = do
     f ptr bytes
 
 
--- | Combination of 'withInteger'' and 'with'.
+-- | Combination of 'withInteger'' and 'with'.  The action must use it only
+--   as an @mpz_srcptr@ (ie, constant/immutable), and must not allow references
+--   to it to escape its scope.
 withInteger :: Integer -> (Ptr MPZ -> IO r) -> IO r
 withInteger i action = withInteger' i $ \z -> with z action
 
@@ -152,7 +165,9 @@ withRational' q action =
   action (MPQ nz dz)
 
 
--- | Combination of 'withRational'' and 'with'.
+-- | Combination of 'withRational'' and 'with'.  The action must use it only
+--   as an @mpq_srcptr@ (ie, constant/immutable), and must not allow references
+--   to it to escape its scope.
 withRational :: Rational -> (Ptr MPQ -> IO r) -> IO r
 withRational q action = withRational' q $ \qq -> with qq action
 

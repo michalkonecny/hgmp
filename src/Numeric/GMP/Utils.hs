@@ -137,11 +137,11 @@ peekInteger src = do
 
 -- | Allocates and initializes an @mpz_t@, then peeks and clears it after the
 --   action.
-withOutInteger :: (Ptr MPZ -> IO a) -> IO (a, Integer)
+withOutInteger :: (Ptr MPZ -> IO a) -> IO (Integer, a)
 withOutInteger f = alloca $ \ptr -> bracket_ (mpz_init ptr) (mpz_clear ptr) $ do
   a <- f ptr
   z <- peekInteger ptr
-  return (a, z)
+  return (z, a)
 
 
 -- | Store a 'Rational' into a temporary 'MPQ'.  The action must use it only
@@ -184,8 +184,8 @@ peekRational src = do
 
 -- | Allocates and initializes an @mpq_t@, then peeks and clears it after the
 --   action.
-withOutRational :: (Ptr MPQ -> IO a) -> IO (a, Rational)
+withOutRational :: (Ptr MPQ -> IO a) -> IO (Rational, a)
 withOutRational f = alloca $ \ptr -> bracket_ (mpq_init ptr) (mpq_clear ptr) $ do
   a <- f ptr
   q <- peekRational ptr
-  return (a, q)
+  return (q, a)

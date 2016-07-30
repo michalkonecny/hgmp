@@ -9,17 +9,9 @@ import Numeric.GMP.Types
 import Numeric.GMP.Utils
 
 
-foreign import ccall safe "__gmpz_init"
-  mpz_init :: Ptr MPZ -> IO ()
-foreign import ccall safe "__gmpz_clear"
-  mpz_clear :: Ptr MPZ -> IO ()
 foreign import ccall safe "__gmpz_mul"
   mpz_mul :: Ptr MPZ -> Ptr MPZ -> Ptr MPZ -> IO ()
 
-foreign import ccall safe "__gmpq_init"
-  mpq_init :: Ptr MPQ -> IO ()
-foreign import ccall safe "__gmpq_clear"
-  mpq_clear :: Ptr MPQ -> IO ()
 foreign import ccall safe "__gmpq_mul"
   mpq_mul :: Ptr MPQ -> Ptr MPQ -> Ptr MPQ -> IO ()
 
@@ -40,14 +32,12 @@ prop_IntegerWithPeek n = ioProperty $ do
   return (n == m)
 
 prop_IntegerMultiply a b = ioProperty $ do
-  withInteger a $ \az ->
-    withInteger b $ \bz ->
-      alloca $ \cz -> do
-        mpz_init cz
-        mpz_mul cz az bz
-        c <- peekInteger cz
-        mpz_clear cz
-        return (a * b == c)
+  (c, _) <-
+    withOutInteger $ \cz ->
+      withInteger a $ \az ->
+        withInteger b $ \bz ->
+          mpz_mul cz az bz
+  return (a * b == c)
 
 
 prop_BigIntegerWithPeek' (Big n) = ioProperty $ do
@@ -59,15 +49,13 @@ prop_BigIntegerWithPeek (Big n) = ioProperty $ do
   return (n == m)
 
 prop_BigIntegerMultiply (Big a) (Big b) = ioProperty $ do
-  withInteger a $ \az ->
-    withInteger b $ \bz ->
-      alloca $ \cz -> do
-        mpz_init cz
-        mpz_mul cz az bz
-        c <- peekInteger cz
-        mpz_clear cz
-        return (a * b == c)
-  
+  (c, _) <-
+    withOutInteger $ \cz ->
+      withInteger a $ \az ->
+        withInteger b $ \bz ->
+          mpz_mul cz az bz
+  return (a * b == c)
+
 
 prop_RationalWithPeek' n = ioProperty $ do
   m <- withRational' n peekRational'
@@ -78,14 +66,12 @@ prop_RationalWithPeek n = ioProperty $ do
   return (n == m)
 
 prop_RationalMultiply a b = ioProperty $ do
-  withRational a $ \aq ->
-    withRational b $ \bq ->
-      alloca $ \cq -> do
-        mpq_init cq
-        mpq_mul cq aq bq
-        c <- peekRational cq
-        mpq_clear cq
-        return (a * b == c)
+  (c, _) <-
+    withOutRational $ \cq ->
+      withRational a $ \aq ->
+        withRational b $ \bq ->
+          mpq_mul cq aq bq
+  return (a * b == c)
 
 
 return []

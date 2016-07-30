@@ -1,6 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
+-- | GMP utilities.
 module Numeric.GMP.Utils
   ( -- * Integer marshalling
     withInteger'
@@ -8,14 +9,17 @@ module Numeric.GMP.Utils
   , peekInteger'
   , peekInteger
   , pokeInteger
+  , withOutInteger
     -- * Rational marshalling
   , withRational'
   , withRational
   , peekRational'
   , peekRational
   , pokeRational
+  , withOutRational
   ) where
 
+import Control.Exception (bracket_)
 import Data.Ratio ((%), numerator, denominator)
 import Foreign (allocaBytes, alloca, with, sizeOf, peek)
 
@@ -45,6 +49,12 @@ foreign import ccall unsafe "__gmpz_init"
 
 foreign import ccall unsafe "__gmpz_clear"
   mpz_clear :: Ptr MPZ -> IO ()
+
+foreign import ccall unsafe "__gmpq_init"
+  mpq_init :: Ptr MPQ -> IO ()
+
+foreign import ccall unsafe "__gmpq_clear"
+  mpq_clear :: Ptr MPQ -> IO ()
 
 foreign import ccall unsafe "__gmpz_set"
   mpz_set :: Ptr MPZ -> Ptr MPZ -> IO ()
@@ -125,6 +135,14 @@ peekInteger src = do
   z <- peek src
   peekInteger' z
 
+-- | Allocates and initializes an @mpz_t@, then peeks and clears it after the
+--   action.
+withOutInteger :: (Ptr MPZ -> IO a) -> IO (a, Integer)
+withOutInteger f = alloca $ \ptr -> bracket_ (mpz_init ptr) (mpz_clear ptr) $ do
+  a <- f ptr
+  z <- peekInteger ptr
+  return (a, z)
+
 
 -- | Store a 'Rational' into a temporary 'MPQ'.  The action must use it only
 --   as an @mpq_srcptr@ (ie, constant/immutable), and must not allow references
@@ -162,3 +180,12 @@ peekRational :: Ptr MPQ -> IO Rational
 peekRational src = do
   q <- peek src
   peekRational' q
+
+
+-- | Allocates and initializes an @mpq_t@, then peeks and clears it after the
+--   action.
+withOutRational :: (Ptr MPQ -> IO a) -> IO (a, Rational)
+withOutRational f = alloca $ \ptr -> bracket_ (mpq_init ptr) (mpq_clear ptr) $ do
+  a <- f ptr
+  q <- peekRational ptr
+  return (a, q)

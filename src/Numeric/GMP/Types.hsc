@@ -1,22 +1,14 @@
 #include <ghc-gmp.h>
+
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Numeric.GMP.Types
-  ( MPZ(..)
-  , MPQ(..)
-  , mpq_numref
-  , mpq_denref
-  , MPF(..)
-  , MPRandState(..)
-  , MPLimb(..)
-  , MPLimbSigned(..)
-  , MPSize(..)
-  , MPExp(..)
-  , MPBitCnt(..)
-  ) where
+
+-- | GMP types.
+module Numeric.GMP.Types where
 
 import Data.Data
 import Data.Typeable
+import Data.Bits
 import Data.Ix
 import Data.Int
 import Data.Word
@@ -24,6 +16,7 @@ import Data.Word
 import Foreign (Storable(..), Ptr, nullPtr, plusPtr)
 import Foreign.C (CInt)
 
+-- | @mpz_t@
 data MPZ = MPZ
   { mpzAlloc :: !CInt
   , mpzSize :: !CInt
@@ -43,6 +36,7 @@ instance Storable MPZ where
     (#poke __mpz_struct, _mp_size) ptr size
     (#poke __mpz_struct, _mp_d) ptr d
 
+-- | @mpq_t@
 data MPQ = MPQ
   { mpqNum :: !MPZ
   , mpqDen :: !MPZ
@@ -63,16 +57,28 @@ mpq_numref, mpq_denref :: Ptr MPQ -> Ptr MPZ
 mpq_numref ptr = plusPtr ptr (#offset __mpq_struct, _mp_num)
 mpq_denref ptr = plusPtr ptr (#offset __mpq_struct, _mp_den)
 
-data MPF = MPF -- TODO
-data MPRandState = MPRandState -- TODO
+-- | @mpf_t@ (TODO)
+data MPF = MPF
 
+-- | @gmp_randstate_t@ (TODO)
+data MPRandState = MPRandState
+
+-- | @mp_limb_t@
 newtype MPLimb = MPLimb (#type mp_limb_t)
-  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Data, Typeable, Storable)
+  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)
+
+-- | @mp_limb_signed_t@
 newtype MPLimbSigned = MPLimbSigned (#type mp_limb_signed_t)
-  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Data, Typeable, Storable)
+  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)
+
+-- | @mp_size_t@
 newtype MPSize = MPSize (#type mp_size_t)
-  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Data, Typeable, Storable)
+  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)
+
+-- | @mp_exp_t@
 newtype MPExp = MPExp (#type mp_exp_t)
-  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Data, Typeable, Storable)
+  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)
+
+-- | @mp_bitcnt_t@
 newtype MPBitCnt = MPBitCnt (#type mp_bitcnt_t)
-  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Data, Typeable, Storable)
+  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)

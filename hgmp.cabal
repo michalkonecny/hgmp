@@ -10,7 +10,7 @@ description:         Currently, types with Storable instances, and marshalling
                      there's any demand.
 
 -- future function bindings may be machine-translated from gmp.h (LGPL-3/GPL-2)
-license:             LGPL-3
+license:             BSD3
 license-file:        LICENSE
 
 author:              Claude Heiland-Allen

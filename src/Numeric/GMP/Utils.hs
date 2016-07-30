@@ -68,13 +68,11 @@ foreign import ccall unsafe "mpz_set_HsInt" -- implemented in wrappers.c
 --   to it to escape its scope.
 withInteger' :: Integer -> (MPZ -> IO r) -> IO r
 withInteger' i action = case i of
-  S# n# -> alloca $ \src -> do
-    -- a bit awkward, TODO figure out how to do this without foreign calls
-    mpz_init src
+  S# n# -> alloca $ \src -> bracket_ (mpz_init src) (mpz_clear src) $ do
+    -- a bit awkward, TODO figure out how to do this without foreign calls?
     mpz_set_HsInt src (I# n#)
     z <- peek src
     r <- action z
-    mpz_clear src
     return r
   Jp# bn@(BN# ba#) -> withByteArray ba# $ \d _ -> action MPZ
         { mpzAlloc = 0

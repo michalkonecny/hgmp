@@ -2,7 +2,6 @@
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE PatternSynonyms #-}
 
 -- | GMP types.
 module Numeric.GMP.Types where
@@ -125,11 +124,3 @@ newtype MPBitCnt = MPBitCnt (#type mp_bitcnt_t)
 -- | @gmp_randalg_t@
 newtype GMPRandAlg = GMPRandAlg (#type gmp_randalg_t)
   deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)
-
--- | Default random number generation algorithm.
-pattern GMP_RAND_ALG_DEFAULT :: GMPRandAlg
-pattern GMP_RAND_ALG_DEFAULT = #{const GMP_RAND_ALG_DEFAULT}
-
--- | Linear congruential number generation algorithm.
-pattern GMP_RAND_ALG_LC :: GMPRandAlg
-pattern GMP_RAND_ALG_LC = #{const GMP_RAND_ALG_LC}

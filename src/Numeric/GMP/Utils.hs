@@ -1,33 +1,35 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
--- | GMP utilities.  A simple example from the test suite:
+-- | GMP utilities.  A simple example with probable primes:
 --
--- > foreign import ccall safe "__gmpz_mul"
--- >   mpz_mul :: Ptr MPZ -> Ptr MPZ -> Ptr MPZ -> IO ()
+-- > foreign import ccall safe "__gmpz_nextprime"
+-- >   mpz_nextprime :: Ptr MPZ -> Ptr MPZ -> IO ()
 -- >
--- > prop_IntegerMultiply a b = ioProperty $ do
--- >   (c, _) <-
--- >     withOutInteger $ \cz ->
--- >       withInteger a $ \az ->
--- >         withInteger b $ \bz ->
--- >           mpz_mul cz az bz
--- >   return (a * b == c)
+-- > nextPrime :: Integer -> IO Integer
+-- > nextPrime n = do
+-- >   (p, _) <-
+-- >     withOutInteger $ \rop ->
+-- >       withInInteger n $ \op ->
+-- >         mpz_nextprime rop op
+-- >   return p
 module Numeric.GMP.Utils
   ( -- * Integer marshalling
-    withInteger'
-  , withInteger
+    withInInteger'
+  , withInInteger
+  , withInOutInteger
+  , withOutInteger
   , peekInteger'
   , peekInteger
   , pokeInteger
-  , withOutInteger
     -- * Rational marshalling
-  , withRational'
-  , withRational
+  , withInRational'
+  , withInRational
+  , withInOutRational
+  , withOutRational
   , peekRational'
   , peekRational
   , pokeRational
-  , withOutRational
   ) where
 
 import Control.Exception (bracket_)
@@ -77,8 +79,8 @@ foreign import ccall unsafe "mpz_set_HsInt" -- implemented in wrappers.c
 -- | Store an 'Integer' into a temporary 'MPZ'.  The action must use it only
 --   as an @mpz_srcptr@ (ie, constant/immutable), and must not allow references
 --   to it to escape its scope.
-withInteger' :: Integer -> (MPZ -> IO r) -> IO r
-withInteger' i action = case i of
+withInInteger' :: Integer -> (MPZ -> IO r) -> IO r
+withInInteger' i action = case i of
   S# n# -> alloca $ \src -> bracket_ (mpz_init src) (mpz_clear src) $ do
     -- a bit awkward, TODO figure out how to do this without foreign calls?
     mpz_set_HsInt src (I# n#)
@@ -104,11 +106,30 @@ withByteArray ba# f = do
     f ptr bytes
 
 
--- | Combination of 'withInteger'' and 'with'.  The action must use it only
---   as an @mpz_srcptr@ (ie, constant/immutable), and must not allow references
---   to it to escape its scope.
-withInteger :: Integer -> (Ptr MPZ -> IO r) -> IO r
-withInteger i action = withInteger' i $ \z -> with z action
+-- | Combination of 'withInInteger'' and 'with'.  The action must use it only
+--   as an @mpz_srcptr@ (ie, constant/immutable), and must not allow the pointer
+--   to escape its scope.  If in doubt about potential mutation by the action,
+--   use 'withInOutInteger' instead.
+withInInteger :: Integer -> (Ptr MPZ -> IO r) -> IO r
+withInInteger i action = withInInteger' i $ \z -> with z action
+
+
+-- | Allocates and initializes an @mpz_t@, pokes the value, and peeks and clears
+--   it after the action.  The pointer must not escape the scope of the action.
+withInOutInteger :: Integer -> (Ptr MPZ -> IO a) -> IO (Integer, a)
+withInOutInteger n action = withOutInteger $ \z -> do
+  pokeInteger z n
+  action z
+
+
+-- | Allocates and initializes an @mpz_t@, then peeks and clears it after the
+--   action.  The pointer must not escape the scope of the action.
+withOutInteger :: (Ptr MPZ -> IO a) -> IO (Integer, a)
+withOutInteger action = alloca $ \ptr ->
+  bracket_ (mpz_init ptr) (mpz_clear ptr) $ do
+    a <- action ptr
+    z <- peekInteger ptr
+    return (z, a)
 
 
 -- | Store an 'Integer' into an @mpz_t@, which must have been initialized with
@@ -117,7 +138,7 @@ pokeInteger :: Ptr MPZ -> Integer -> IO ()
 pokeInteger dst (S# n#) = mpz_set_HsInt dst (I# n#)
 -- copies twice, once in withInteger, and again in @mpz_set@.
 -- could maybe rewrite to do one copy, using gmp's own alloc functions?
-pokeInteger dst j = withInteger j $ mpz_set dst
+pokeInteger dst j = withInInteger j $ mpz_set dst
 
 
 -- | Read an 'Integer' from an 'MPZ'.
@@ -146,30 +167,41 @@ peekInteger src = do
   z <- peek src
   peekInteger' z
 
--- | Allocates and initializes an @mpz_t@, then peeks and clears it after the
---   action.
-withOutInteger :: (Ptr MPZ -> IO a) -> IO (Integer, a)
-withOutInteger f = alloca $ \ptr -> bracket_ (mpz_init ptr) (mpz_clear ptr) $ do
-  a <- f ptr
-  z <- peekInteger ptr
-  return (z, a)
-
 
 -- | Store a 'Rational' into a temporary 'MPQ'.  The action must use it only
---   as an @mpq_srcptr@ (ie, constant/immutable), and must not allow references
---   to it to escape its scope.
-withRational' :: Rational -> (MPQ -> IO r) -> IO r
-withRational' q action =
-  withInteger' (numerator q) $ \nz ->
-  withInteger' (denominator q) $ \dz ->
+--   as an @mpq_srcptr@ (ie, constant/immutable), and must not allow the pointer
+--   to escape its scope.
+withInRational' :: Rational -> (MPQ -> IO r) -> IO r
+withInRational' q action =
+  withInInteger' (numerator q) $ \nz ->
+  withInInteger' (denominator q) $ \dz ->
   action (MPQ nz dz)
 
 
--- | Combination of 'withRational'' and 'with'.  The action must use it only
---   as an @mpq_srcptr@ (ie, constant/immutable), and must not allow references
---   to it to escape its scope.
-withRational :: Rational -> (Ptr MPQ -> IO r) -> IO r
-withRational q action = withRational' q $ \qq -> with qq action
+-- | Combination of 'withInRational'' and 'with'.  The action must use it only
+--   as an @mpq_srcptr@ (ie, constant/immutable), and must not allow the pointer
+--   to escape its scope.  If in doubt about potential mutation by the action,
+--   use 'withInOutRational' instead.
+withInRational :: Rational -> (Ptr MPQ -> IO r) -> IO r
+withInRational q action = withInRational' q $ \qq -> with qq action
+
+
+-- | Allocates and initializes an @mpq_t@, pokes the value, and peeks and clears
+--   it after the action.  The pointer must not escaep the scope of the action.
+withInOutRational :: Rational -> (Ptr MPQ -> IO a) -> IO (Rational, a)
+withInOutRational n action = withOutRational $ \q -> do
+  pokeRational q n
+  action q
+
+
+-- | Allocates and initializes an @mpq_t@, then peeks and clears it after the
+--   action.  The pointer must not escape the scope of the action.
+withOutRational :: (Ptr MPQ -> IO a) -> IO (Rational, a)
+withOutRational action = alloca $ \ptr ->
+  bracket_ (mpq_init ptr) (mpq_clear ptr) $ do
+    a <- action ptr
+    q <- peekRational ptr
+    return (q, a)
 
 
 -- | Store a 'Rational' into an @mpq_t@, which must have been initialized with
@@ -193,12 +225,3 @@ peekRational :: Ptr MPQ -> IO Rational
 peekRational src = do
   q <- peek src
   peekRational' q
-
-
--- | Allocates and initializes an @mpq_t@, then peeks and clears it after the
---   action.
-withOutRational :: (Ptr MPQ -> IO a) -> IO (Rational, a)
-withOutRational f = alloca $ \ptr -> bracket_ (mpq_init ptr) (mpq_clear ptr) $ do
-  a <- f ptr
-  q <- peekRational ptr
-  return (q, a)

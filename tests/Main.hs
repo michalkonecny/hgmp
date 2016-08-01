@@ -24,52 +24,52 @@ instance Arbitrary Big where
 
 
 prop_IntegerWithPeek' n = ioProperty $ do
-  m <- withInteger' n peekInteger'
+  m <- withInInteger' n peekInteger'
   return (n == m)
 
 prop_IntegerWithPeek n = ioProperty $ do
-  m <- withInteger n peekInteger
+  m <- withInInteger n peekInteger
   return (n == m)
 
 prop_IntegerMultiply a b = ioProperty $ do
   (c, _) <-
     withOutInteger $ \cz ->
-      withInteger a $ \az ->
-        withInteger b $ \bz ->
+      withInInteger a $ \az ->
+        withInInteger b $ \bz ->
           mpz_mul cz az bz
   return (a * b == c)
 
 
 prop_BigIntegerWithPeek' (Big n) = ioProperty $ do
-  m <- withInteger' n peekInteger'
+  m <- withInInteger' n peekInteger'
   return (n == m)
 
 prop_BigIntegerWithPeek (Big n) = ioProperty $ do
-  m <- withInteger n peekInteger
+  m <- withInInteger n peekInteger
   return (n == m)
 
 prop_BigIntegerMultiply (Big a) (Big b) = ioProperty $ do
   (c, _) <-
     withOutInteger $ \cz ->
-      withInteger a $ \az ->
-        withInteger b $ \bz ->
+      withInInteger a $ \az ->
+        withInInteger b $ \bz ->
           mpz_mul cz az bz
   return (a * b == c)
 
 
 prop_RationalWithPeek' n = ioProperty $ do
-  m <- withRational' n peekRational'
+  m <- withInRational' n peekRational'
   return (n == m)
 
 prop_RationalWithPeek n = ioProperty $ do
-  m <- withRational n peekRational
+  m <- withInRational n peekRational
   return (n == m)
 
 prop_RationalMultiply a b = ioProperty $ do
   (c, _) <-
     withOutRational $ \cq ->
-      withRational a $ \aq ->
-        withRational b $ \bq ->
+      withInRational a $ \aq ->
+        withInRational b $ \bq ->
           mpq_mul cq aq bq
   return (a * b == c)
 

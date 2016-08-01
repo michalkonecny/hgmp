@@ -3,7 +3,7 @@ module Main (main) where
 
 import Foreign.Ptr (Ptr(..))
 import Numeric.GMP.Types (MPZ)
-import Numeric.GMP.Utils (withInInteger, withOutInteger)
+import Numeric.GMP.Utils (withInInteger, withOutInteger_)
 import System.Environment (getArgs)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -12,11 +12,9 @@ foreign import ccall safe "__gmpz_nextprime"
 
 nextPrimeIO :: Integer -> IO Integer
 nextPrimeIO n = do
-  (p, _) <-
-    withOutInteger $ \rop ->
-      withInInteger n $ \op ->
-        mpz_nextprime rop op
-  return p
+  withOutInteger_ $ \rop ->
+    withInInteger n $ \op ->
+      mpz_nextprime rop op
 
 nextPrime :: Integer -> Integer
 nextPrime n = unsafePerformIO $ nextPrimeIO n

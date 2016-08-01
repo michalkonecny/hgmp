@@ -7,12 +7,10 @@
 -- >   mpz_nextprime :: Ptr MPZ -> Ptr MPZ -> IO ()
 -- >
 -- > nextPrime :: Integer -> IO Integer
--- > nextPrime n = do
--- >   (p, _) <-
--- >     withOutInteger $ \rop ->
--- >       withInInteger n $ \op ->
--- >         mpz_nextprime rop op
--- >   return p
+-- > nextPrime n =
+-- >   withOutInteger_ $ \rop ->
+-- >     withInInteger n $ \op ->
+-- >       mpz_nextprime rop op
 module Numeric.GMP.Utils
   ( -- * Integer marshalling
     withInInteger'

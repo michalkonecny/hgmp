@@ -18,7 +18,9 @@ module Numeric.GMP.Utils
     withInInteger'
   , withInInteger
   , withInOutInteger
+  , withInOutInteger_
   , withOutInteger
+  , withOutInteger_
   , peekInteger'
   , peekInteger
   , pokeInteger
@@ -26,7 +28,9 @@ module Numeric.GMP.Utils
   , withInRational'
   , withInRational
   , withInOutRational
+  , withInOutRational_
   , withOutRational
+  , withOutRational_
   , peekRational'
   , peekRational
   , pokeRational
@@ -122,6 +126,15 @@ withInOutInteger n action = withOutInteger $ \z -> do
   action z
 
 
+-- | Allocates and initializes an @mpz_t@, pokes the value, and peeks and clears
+--   it after the action.  The pointer must not escape the scope of the action.
+--   The result of the action is discarded.
+withInOutInteger_ :: Integer -> (Ptr MPZ -> IO a) -> IO Integer
+withInOutInteger_ n action = do
+  (z, _) <- withInOutInteger n action
+  return z
+
+
 -- | Allocates and initializes an @mpz_t@, then peeks and clears it after the
 --   action.  The pointer must not escape the scope of the action.
 withOutInteger :: (Ptr MPZ -> IO a) -> IO (Integer, a)
@@ -130,6 +143,15 @@ withOutInteger action = alloca $ \ptr ->
     a <- action ptr
     z <- peekInteger ptr
     return (z, a)
+
+
+-- | Allocates and initializes an @mpz_t@, then peeks and clears it after the
+--   action.  The pointer must not escape the scope of the action.  The result
+--   of the action is discarded.
+withOutInteger_ :: (Ptr MPZ -> IO a) -> IO Integer
+withOutInteger_ action = do
+  (z, _) <- withOutInteger action
+  return z
 
 
 -- | Store an 'Integer' into an @mpz_t@, which must have been initialized with
@@ -194,6 +216,15 @@ withInOutRational n action = withOutRational $ \q -> do
   action q
 
 
+-- | Allocates and initializes an @mpq_t@, pokes the value, and peeks and clears
+--   it after the action.  The pointer must not escaep the scope of the action.
+--   The result of the action is discarded.
+withInOutRational_ :: Rational -> (Ptr MPQ -> IO a) -> IO Rational
+withInOutRational_ n action = do
+  (q, _) <- withInOutRational n action
+  return q
+
+
 -- | Allocates and initializes an @mpq_t@, then peeks and clears it after the
 --   action.  The pointer must not escape the scope of the action.
 withOutRational :: (Ptr MPQ -> IO a) -> IO (Rational, a)
@@ -202,6 +233,15 @@ withOutRational action = alloca $ \ptr ->
     a <- action ptr
     q <- peekRational ptr
     return (q, a)
+
+
+-- | Allocates and initializes an @mpq_t@, then peeks and clears it after the
+--   action.  The pointer must not escape the scope of the action.  The result
+--   of the action is discarded.
+withOutRational_ :: (Ptr MPQ -> IO a) -> IO Rational
+withOutRational_ action = do
+  (q, _) <- withOutRational action
+  return q
 
 
 -- | Store a 'Rational' into an @mpq_t@, which must have been initialized with

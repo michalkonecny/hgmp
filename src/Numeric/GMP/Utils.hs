@@ -6,11 +6,12 @@
 -- > foreign import ccall safe "__gmpz_nextprime"
 -- >   mpz_nextprime :: Ptr MPZ -> Ptr MPZ -> IO ()
 -- >
--- > nextPrime :: Integer -> IO Integer
+-- > nextPrime :: Integer -> Integer
 -- > nextPrime n =
--- >   withOutInteger_ $ \rop ->
--- >     withInInteger n $ \op ->
--- >       mpz_nextprime rop op
+-- >   unsafePerformIO $
+-- >     withOutInteger_ $ \rop ->
+-- >       withInInteger n $ \op ->
+-- >         mpz_nextprime rop op
 module Numeric.GMP.Utils
   ( -- * Integer marshalling
     withInInteger'

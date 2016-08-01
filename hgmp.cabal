@@ -19,7 +19,7 @@ maintainer:          claude@mathr.co.uk
 copyright:           2016 Claude Heiland-Allen
 category:            Numeric
 build-type:          Simple
-extra-source-files:  examples/primes.hs
+extra-source-files:  README.md examples/primes.hs
 cabal-version:       >=1.10
 
 library

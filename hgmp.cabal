@@ -36,6 +36,7 @@ library
                        ForeignFunctionInterface
                        MagicHash
                        UnboxedTuples
+                       PatternSynonyms
   ghc-options:         -Wall
 
 test-suite Main

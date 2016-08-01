@@ -2,6 +2,7 @@
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 -- | GMP types.
 module Numeric.GMP.Types where
@@ -53,15 +54,53 @@ instance Storable MPQ where
     (#poke __mpq_struct, _mp_num) ptr num
     (#poke __mpq_struct, _mp_den) ptr den
 
+-- | Get pointers to numerator and denominator (these are macros in the C API).
 mpq_numref, mpq_denref :: Ptr MPQ -> Ptr MPZ
 mpq_numref ptr = plusPtr ptr (#offset __mpq_struct, _mp_num)
 mpq_denref ptr = plusPtr ptr (#offset __mpq_struct, _mp_den)
 
--- | @mpf_t@ (TODO)
+-- | @mpf_t@
 data MPF = MPF
+  { mpfPrec :: !CInt
+  , mpfSize :: !CInt
+  , mpfExp :: !MPExp
+  , mpfD :: !(Ptr MPLimb)
+  }
 
--- | @gmp_randstate_t@ (TODO)
-data MPRandState = MPRandState
+instance Storable MPF where
+  sizeOf _ = (#size __mpf_struct)
+  alignment _ = alignment nullPtr -- TODO verify
+  peek ptr = do
+    prec <- (#peek __mpf_struct, _mp_prec) ptr
+    size <- (#peek __mpf_struct, _mp_size) ptr
+    expo <- (#peek __mpf_struct, _mp_exp) ptr
+    d <- (#peek __mpf_struct, _mp_d) ptr
+    return (MPF{ mpfPrec = prec, mpfSize = size, mpfExp = expo, mpfD = d })
+  poke ptr (MPF{ mpfPrec = prec, mpfSize = size, mpfExp = expo, mpfD = d }) = do
+    (#poke __mpf_struct, _mp_prec) ptr prec
+    (#poke __mpf_struct, _mp_size) ptr size
+    (#poke __mpf_struct, _mp_exp) ptr expo
+    (#poke __mpf_struct, _mp_d) ptr d
+
+-- | @gmp_randstate_t@
+data GMPRandState = GMPRandState
+  { gmprsSeed :: !MPZ
+  , gmprsAlg :: !GMPRandAlg
+  , gmprsAlgData :: !(Ptr ())
+  }
+
+instance Storable GMPRandState where
+  sizeOf _ = (#size __gmp_randstate_struct)
+  alignment _ = alignment nullPtr -- TOOD verify
+  peek ptr = do
+    seed <- (#peek __gmp_randstate_struct, _mp_seed) ptr
+    alg <- (#peek __gmp_randstate_struct, _mp_alg) ptr
+    algdata <- (#peek __gmp_randstate_struct, _mp_algdata._mp_lc) ptr
+    return (GMPRandState{ gmprsSeed = seed, gmprsAlg = alg, gmprsAlgData = algdata })
+  poke ptr (GMPRandState{ gmprsSeed = seed, gmprsAlg = alg, gmprsAlgData = algdata }) = do
+    (#poke __gmp_randstate_struct, _mp_seed) ptr seed
+    (#poke __gmp_randstate_struct, _mp_alg) ptr alg
+    (#poke __gmp_randstate_struct, _mp_algdata) ptr algdata
 
 -- | @mp_limb_t@
 newtype MPLimb = MPLimb (#type mp_limb_t)
@@ -82,3 +121,15 @@ newtype MPExp = MPExp (#type mp_exp_t)
 -- | @mp_bitcnt_t@
 newtype MPBitCnt = MPBitCnt (#type mp_bitcnt_t)
   deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)
+
+-- | @gmp_randalg_t@
+newtype GMPRandAlg = GMPRandAlg (#type gmp_randalg_t)
+  deriving (Eq, Ord, Read, Show, Enum, Bounded, Num, Integral, Real, Ix, Bits, FiniteBits, Data, Typeable, Storable)
+
+-- | Default random number generation algorithm.
+pattern GMP_RAND_ALG_DEFAULT :: GMPRandAlg
+pattern GMP_RAND_ALG_DEFAULT = #{const GMP_RAND_ALG_DEFAULT}
+
+-- | Linear congruential number generation algorithm.
+pattern GMP_RAND_ALG_LC :: GMPRandAlg
+pattern GMP_RAND_ALG_LC = #{const GMP_RAND_ALG_LC}

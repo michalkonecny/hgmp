@@ -25,7 +25,7 @@ data MPZ = MPZ
 
 instance Storable MPZ where
   sizeOf _ = (#size __mpz_struct)
-  alignment _ = alignment nullPtr -- TODO verify
+  alignment _ = (#alignment __mpz_struct)
   peek ptr = do
     alloc <- (#peek __mpz_struct, _mp_alloc) ptr
     size <- (#peek __mpz_struct, _mp_size) ptr
@@ -44,7 +44,7 @@ data MPQ = MPQ
 
 instance Storable MPQ where
   sizeOf _ = (#size __mpq_struct)
-  alignment _ = alignment (undefined :: MPZ)
+  alignment _ = (#alignment __mpq_struct)
   peek ptr = do
     num <- (#peek __mpq_struct, _mp_num) ptr
     den <- (#peek __mpq_struct, _mp_den) ptr
@@ -68,7 +68,7 @@ data MPF = MPF
 
 instance Storable MPF where
   sizeOf _ = (#size __mpf_struct)
-  alignment _ = alignment nullPtr -- TODO verify
+  alignment _ = (#alignment __mpf_struct)
   peek ptr = do
     prec <- (#peek __mpf_struct, _mp_prec) ptr
     size <- (#peek __mpf_struct, _mp_size) ptr
@@ -90,7 +90,7 @@ data GMPRandState = GMPRandState
 
 instance Storable GMPRandState where
   sizeOf _ = (#size __gmp_randstate_struct)
-  alignment _ = alignment nullPtr -- TOOD verify
+  alignment _ = (#alignment __gmp_randstate_struct)
   peek ptr = do
     seed <- (#peek __gmp_randstate_struct, _mp_seed) ptr
     alg <- (#peek __gmp_randstate_struct, _mp_alg) ptr
